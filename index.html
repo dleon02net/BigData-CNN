@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario Automático - Salón de Cómputo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d3436, #636e72);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+
+        .upload-section {
+            padding: 40px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 15px;
+            padding: 50px 30px;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .upload-area:hover {
+            border-color: #2980b9;
+            background: #e3f2fd;
+            transform: translateY(-2px);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            color: #3498db;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        .preview-container {
+            display: none;
+            gap: 20px;
+            padding: 30px;
+            flex-wrap: wrap;
+        }
+
+        .image-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .image-section h3 {
+            background: #2d3436;
+            color: white;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            margin: 0;
+            text-align: center;
+        }
+
+        .image-section canvas {
+            width: 100%;
+            border: 2px solid #b2bec3;
+            border-radius: 0 0 10px 10px;
+            display: block;
+            background: #f8f9fa;
+            max-width: 100%;
+        }
+
+        .results-section {
+            display: none;
+            padding: 30px;
+            background: #f1f2f6;
+            border-radius: 15px;
+            margin: 20px;
+        }
+
+        .count-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .count-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+            transition: transform 0.3s ease;
+        }
+
+        .count-item:hover {
+            transform: translateY(-3px);
+        }
+
+        .count-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2d3436;
+            margin-bottom: 5px;
+        }
+
+        .count-label {
+            font-size: 1em;
+            color: #636e72;
+            font-weight: 500;
+        }
+
+        .total-count {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 25px;
+        }
+
+        .total-count .count-number,
+        .total-count .count-label {
+            color: white;
+        }
+
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            font-weight: bold;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        button:disabled {
+            background: #b2bec3;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #636e72;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            background: #e8f5e8;
+            border: 2px solid #27ae60;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+            text-align: center;
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .error-message {
+            background: #ffeaa7;
+            border: 2px solid #fdcb6e;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+            text-align: center;
+            color: #e17055;
+            font-weight: bold;
+            display: none;
+        }
+
+        .detection-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .detection-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .detection-number {
+            background: blue;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .detection-info {
+            flex: 1;
+        }
+
+        .detection-class {
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .detection-confidence {
+            color: #636e72;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .preview-container {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .upload-section {
+                padding: 20px;
+            }
+        }
+
+        /* Colores por clase */
+        .class-cpu { border-left-color: #e74c3c; }
+        .class-mesa { border-left-color: #27ae60; }
+        .class-pantalla { border-left-color: #3498db; }
+        .class-silla { border-left-color: #9b59b6; }
+        .class-teclado { border-left-color: #f39c12; }
+        .class-mouse { border-left-color: #1abc9c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ Inventario Automático - Salón de Cómputo</h1>
+            <p>Detección y conteo de objetos en tiempo real • Ejecución 100% local</p>
+        </div>
+        
+        <div class="upload-section">
+            <h2>📸 Subir Imagen del Salón</h2>
+            <p>Selecciona una foto JPG/JPEG de tu salón de cómputo</p>
+            
+            <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+                <div class="upload-icon">📁</div>
+                <h3>Haz clic para seleccionar imagen</h3>
+                <p>Formatos soportados: JPG, JPEG | Máximo 5MB</p>
+            </div>
+            
+            <input type="file" id="imageInput" accept=".jpg,.jpeg">
+            <br>
+            <button id="processBtn" onclick="processImage()" disabled>🔍 Analizar Inventario</button>
+        </div>
+
+        <div class="status-message" id="statusMessage">
+            ⚡ Inicializando sistema de detección...
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            ❌ Error al procesar la imagen
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <h3>Procesando imagen...</h3>
+            <p>Detectando objetos en el salón de cómputo</p>
+        </div>
+        
+        <div class="preview-container" id="previewContainer">
+            <div class="image-section">
+                <h3>🖼️ Imagen Original</h3>
+                <canvas id="originalCanvas"></canvas>
+            </div>
+            
+            <div class="image-section">
+                <h3>🎯 Objetos Detectados</h3>
+                <canvas id="resultCanvas"></canvas>
+            </div>
+        </div>
+        
+        <div class="results-section" id="resultsSection">
+            <h2 style="text-align: center; margin-bottom: 25px; color: #2d3436;">📊 Resumen del Inventario</h2>
+            
+            <div class="detection-list" id="detectionList">
+                <!-- Lista de detecciones aparecerá aquí -->
+            </div>
+            
+            <div class="count-grid" id="countTable">
+                <!-- Conteo por clase aparecerá aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <!-- COCO-SSD -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
+    
+    <script>
+        // =============================================
+        // SISTEMA DE INVENTARIO AUTOMÁTICO
+        // =============================================
+        class InventorySystem {
+            constructor() {
+                this.model = null;
+                this.isModelLoaded = false;
+                this.currentImage = null;
+                
+                // Mapeo de clases COCO a nuestras clases
+                this.classMapping = {
+                    // CPU
+                    'laptop': 'cpu',
+                    'computer': 'cpu',
+                    
+                    // Mesa
+                    'dining table': 'mesa',
+                    'desk': 'mesa',
+                    'table': 'mesa',
+                    
+                    // Mouse
+                    'mouse': 'mouse',
+                    
+                    // Pantalla
+                    'monitor': 'pantalla',
+                    'tv': 'pantalla',
+                    'screen': 'pantalla',
+                    
+                    // Silla
+                    'chair': 'silla',
+                    'seat': 'silla',
+                    
+                    // Teclado
+                    'keyboard': 'teclado'
+                };
+                
+                // Números según el proyecto (0-5)
+                this.classNumbers = {
+                    'cpu': 0,
+                    'mesa': 1,
+                    'mouse': 2,
+                    'pantalla': 3,
+                    'silla': 4,
+                    'teclado': 5
+                };
+                
+                this.classNames = {
+                    'cpu': 'CPU',
+                    'mesa': 'Mesa',
+                    'mouse': 'Mouse',
+                    'pantalla': 'Pantalla',
+                    'silla': 'Silla',
+                    'teclado': 'Teclado'
+                };
+                
+                this.init();
+            }
+
+            async init() {
+                try {
+                    this.updateStatus('🔄 Cargando modelo COCO-SSD...');
+                    
+                    // Cargar modelo COCO-SSD pre-entrenado
+                    this.model = await cocoSsd.load();
+                    this.isModelLoaded = true;
+                    
+                    this.updateStatus('✅ Sistema listo - Sube una imagen del salón de cómputo');
+                    this.setupEventListeners();
+                    
+                    console.log('✅ Modelo COCO-SSD cargado correctamente');
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.updateStatus('❌ Error cargando el modelo. Recarga la página.');
+                    this.showError('No se pudo cargar el modelo de detección');
+                }
+            }
+
+            updateStatus(message) {
+                document.getElementById('statusMessage').innerHTML = message;
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.innerHTML = `❌ ${message}`;
+                errorDiv.style.display = 'block';
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            }
+
+            setupEventListeners() {
+                const fileInput = document.getElementById('imageInput');
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files[0]) {
+                        this.handleImageUpload(e.target.files[0]);
+                    }
+                });
+            }
+
+            handleImageUpload(file) {
+                if (!file.type.match('image.*')) {
+                    this.showError('Por favor, sube una imagen válida (JPG/JPEG)');
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    this.showError('La imagen es muy grande (máximo 5MB)');
+                    return;
+                }
+
+                this.showLoading(true);
+                this.updateStatus('📥 Cargando imagen...');
+                
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                
+                img.onload = () => {
+                    this.currentImage = img;
+                    this.displayOriginalImage(img);
+                    this.showLoading(false);
+                    document.getElementById('processBtn').disabled = false;
+                    document.getElementById('previewContainer').style.display = 'flex';
+                    this.updateStatus('✅ Imagen cargada - Haz clic en "Analizar Inventario"');
+                    URL.revokeObjectURL(img.src);
+                };
+                
+                img.onerror = () => {
+                    this.showError('Error al cargar la imagen');
+                    this.showLoading(false);
+                };
+            }
+
+            displayOriginalImage(img) {
+                const canvas = document.getElementById('originalCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                const maxWidth = 500;
+                const scale = Math.min(maxWidth / img.width, 1);
+                
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            }
+
+            showLoading(show) {
+                document.getElementById('loading').style.display = show ? 'block' : 'none';
+                document.getElementById('processBtn').disabled = show;
+            }
+
+            async processImage() {
+                if (!this.currentImage) {
+                    this.showError('Primero sube una imagen');
+                    return;
+                }
+
+                if (!this.isModelLoaded) {
+                    this.showError('El modelo no está cargado');
+                    return;
+                }
+
+                this.showLoading(true);
+                this.updateStatus('🔍 Analizando imagen...');
+
+                try {
+                    // Realizar detección
+                    const predictions = await this.model.detect(this.currentImage);
+                    
+                    // Filtrar y mapear a nuestras clases
+                    const ourDetections = this.filterAndMapDetections(predictions);
+                    
+                    // Mostrar resultados
+                    this.displayResults(this.currentImage, ourDetections);
+                    this.showLoading(false);
+                    this.updateStatus(`✅ Análisis completado: ${ourDetections.length} objetos detectados`);
+                    
+                } catch (error) {
+                    console.error('Error en detección:', error);
+                    this.showError('Error en el análisis. Intenta con otra imagen.');
+                    this.showLoading(false);
+                }
+            }
+
+            filterAndMapDetections(predictions) {
+                const ourDetections = [];
+                
+                predictions.forEach(pred => {
+                    if (pred.score > 0.4) { // Filtro de confianza
+                        const originalClass = pred.class.toLowerCase();
+                        
+                        // Buscar en nuestro mapeo
+                        for (const [cocoClass, ourClass] of Object.entries(this.classMapping)) {
+                            if (originalClass.includes(cocoClass)) {
+                                ourDetections.push({
+                                    class: ourClass,
+                                    classNumber: this.classNumbers[ourClass],
+                                    className: this.classNames[ourClass],
+                                    confidence: pred.score,
+                                    bbox: pred.bbox,
+                                    originalClass: originalClass
+                                });
+                                break;
+                            }
+                        }
+                    }
+                });
+                
+                return ourDetections;
+            }
+
+            displayResults(img, detections) {
+                const canvas = document.getElementById('resultCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Configurar canvas
+                const originalCanvas = document.getElementById('originalCanvas');
+                canvas.width = originalCanvas.width;
+                canvas.height = originalCanvas.height;
+                
+                // Dibujar imagen original
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                const counts = {
+                    'cpu': 0, 'mesa': 0, 'mouse': 0, 
+                    'pantalla': 0, 'silla': 0, 'teclado': 0
+                };
+                
+                // DIBUJAR DETECCIONES
+                detections.forEach((det, index) => {
+                    const [x, y, width, height] = det.bbox;
+                    const scaleX = canvas.width / img.width;
+                    const scaleY = canvas.height / img.height;
+                    
+                    const scaledX = x * scaleX;
+                    const scaledY = y * scaleY;
+                    const scaledWidth = width * scaleX;
+                    const scaledHeight = height * scaleY;
+                    
+                    // CONTAR
+                    counts[det.class]++;
+                    
+                    // BOUNDING BOX AZUL (REQUISITO)
+                    ctx.strokeStyle = 'blue';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+                    
+                    // FONDO PARA NÚMERO
+                    ctx.fillStyle = 'blue';
+                    ctx.fillRect(scaledX, scaledY - 25, 30, 25);
+                    
+                    // NÚMERO AZUL (REQUISITO)
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText(det.classNumber.toString(), scaledX + 8, scaledY - 8);
+                    
+                    // ETIQUETA CON NOMBRE Y CONFIANZA
+                    ctx.fillStyle = this.getClassColor(det.class);
+                    ctx.font = 'bold 12px Arial';
+                    ctx.fillText(
+                        `${det.className} (${Math.round(det.confidence * 100)}%)`,
+                        scaledX + 35,
+                        scaledY - 8
+                    );
+                });
+                
+                // MOSTRAR RESULTADOS
+                this.showDetectionList(detections);
+                this.showCountResults(counts);
+                
+                console.log(`🎯 ${detections.length} objetos detectados:`);
+                detections.forEach(det => {
+                    console.log(`   - ${det.className} (${Math.round(det.confidence * 100)}%)`);
+                });
+            }
+
+            getClassColor(className) {
+                const colors = {
+                    'cpu': '#e74c3c',
+                    'mesa': '#27ae60', 
+                    'mouse': '#1abc9c',
+                    'pantalla': '#3498db',
+                    'silla': '#9b59b6',
+                    'teclado': '#f39c12'
+                };
+                return colors[className] || '#3498db';
+            }
+
+            showDetectionList(detections) {
+                let html = '<h3 style="margin-bottom: 15px;">📋 Lista de Objetos Detectados:</h3>';
+                
+                if (detections.length === 0) {
+                    html += '<p style="text-align: center; color: #636e72; padding: 20px;">No se detectaron objetos del salón de cómputo</p>';
+                } else {
+                    detections.forEach((det, index) => {
+                        html += `
+                            <div class="detection-item class-${det.class}">
+                                <div class="detection-number">${det.classNumber}</div>
+                                <div class="detection-info">
+                                    <div class="detection-class">${det.className}</div>
+                                    <div class="detection-confidence">
+                                        Confianza: ${Math.round(det.confidence * 100)}% | 
+                                        Posición: [${Math.round(det.bbox[0])}, ${Math.round(det.bbox[1])}]
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                document.getElementById('detectionList').innerHTML = html;
+            }
+
+            showCountResults(counts) {
+                const countTable = document.getElementById('countTable');
+                let html = '';
+                let total = 0;
+                
+                // GENERAR CONTEO POR CLASE
+                Object.entries(counts).forEach(([className, count]) => {
+                    total += count;
+                    const classNumber = this.classNumbers[className];
+                    const displayName = this.classNames[className];
+                    
+                    html += `
+                        <div class="count-item class-${className}">
+                            <div class="count-number">${count}</div>
+                            <div class="count-label">${classNumber} - ${displayName}</div>
+                        </div>
+                    `;
+                });
+                
+                // AGREGAR TOTAL
+                html += `
+                    <div class="count-item total-count">
+                        <div class="count-number">${total}</div>
+                        <div class="count-label">TOTAL DE OBJETOS DETECTADOS</div>
+                    </div>
+                `;
+                
+                countTable.innerHTML = html;
+                document.getElementById('resultsSection').style.display = 'block';
+            }
+        }
+
+        // ==============================
+        // INICIALIZACIÓN
+        // ==============================
+        let inventorySystem;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            inventorySystem = new InventorySystem();
+        });
+
+        function processImage() {
+            if (inventorySystem) {
+                inventorySystem.processImage();
+            }
+        }
+    </script>
+</body>
+</html>
