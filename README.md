@@ -31,8 +31,4 @@ Formato adicional: Archivos XML (PASCAL VOC) para anotaciones
 
 Resultados Obtenidos: ✅ Precisión clasificación: 85% en validación
 
-✅ Detección múltiple: Funcional con COCO-SSD
-
-✅ Interfaz web: Completamente operativa
-
-✅ Cumplimiento requisitos: 100% del proyecto
+El proyecto se encontraba implementado en CodePen, al unificarlo para operar en entorno local se presentaron inconvenientes.
